@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code × GitHub — 비개발자를 위한 업무 자동화</title>
+<style>
+/* ── 삼성 브랜드 웹폰트 (로컬 WOFF2, CDN 미사용) ───────────────── */
+@font-face{font-family:'SS Head';src:url('fonts/SamsungSSHeadDigKR-Light.woff2') format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'SS Head';src:url('fonts/SamsungSSHeadDigKR-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'SS Head';src:url('fonts/SamsungSSHeadDigKR-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'SS Head';src:url('fonts/SamsungSSHeadDigKR-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'SS Body';src:url('fonts/SamsungSSBodyDigKR-Light.woff2') format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'SS Body';src:url('fonts/SamsungSSBodyDigKR-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'SS Body';src:url('fonts/SamsungSSBodyDigKR-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+
+:root{
+  --bg:#0C1422; --bg2:#0A1120; --surface:#141F33; --surface2:#1B2942; --border:#293A57;
+  --text:#EAF1FA; --text2:#AEBED2; --text3:#7C90AC;
+  --accent:#6FA0FF; --accent2:#9C8CFF; --accent-bg:rgba(111,160,255,.13);
+  --ok:#43C495; --ok-bg:rgba(67,196,149,.13);
+  --warn:#E7AE4B; --warn-bg:rgba(231,174,75,.13);
+  --danger:#F0685E; --danger-bg:rgba(240,104,94,.13);
+  --code:#080D18; --radius:12px; --radius-sm:7px;
+  --head:'SS Head','SS Body',system-ui,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  --sans:'SS Body',system-ui,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  --mono:'Consolas','D2Coding',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#05080F;color:var(--text);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+#viewport{position:fixed;inset:0;display:grid;place-items:center}
+#stage{width:1280px;height:720px;position:relative;transform-origin:center center;flex:none}
+.slide{position:absolute;inset:0;background:
+  radial-gradient(130% 90% at 90% -10%,rgba(111,160,255,.10) 0%,transparent 46%),
+  radial-gradient(120% 80% at -8% 108%,rgba(156,140,255,.08) 0%,transparent 42%),
+  var(--bg);
+  padding:50px 62px 66px;display:none;flex-direction:column;border-radius:3px;overflow:hidden}
+.slide.active{display:flex}
+
+/* ── 슬라이드 공통 요소 ────────────────────────────────────────── */
+.kicker{font-family:var(--head);font-size:13px;letter-spacing:.16em;color:var(--accent);
+  text-transform:uppercase;margin-bottom:14px;font-weight:700;display:flex;align-items:center;gap:9px}
+.kicker .cn{font-family:var(--mono);color:var(--text3);font-weight:700}
+h1.title{font-family:var(--head);font-size:34px;line-height:1.24;font-weight:700;letter-spacing:-.01em;margin-bottom:16px}
+h1.title b{color:var(--accent)}
+.lede{font-size:20px;line-height:1.55;font-weight:400;color:var(--text2);
+  border-left:3px solid var(--accent);padding:3px 0 3px 17px;margin-bottom:26px;max-width:1000px}
+.lede em{font-style:normal;color:var(--text);font-weight:700}
+.lede b{color:var(--accent);font-weight:700}
+.body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+.body.top{justify-content:flex-start}
+
+.foot{position:absolute;left:62px;right:62px;bottom:22px;display:flex;align-items:center;
+  justify-content:space-between;font-size:12px;color:var(--text3);font-family:var(--head);font-weight:600}
+.foot .l{display:flex;align-items:center;gap:8px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.8}
+
+/* ── 그리드 / 카드 ─────────────────────────────────────────────── */
+.grid{display:grid;gap:15px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.card h3{font-family:var(--head);font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text);
+  display:flex;align-items:center;gap:9px;line-height:1.3}
+.card h3 .ic{color:var(--accent)}
+.card p{font-size:14.5px;line-height:1.62;color:var(--text2)}
+.card p b{color:var(--text);font-weight:700}
+.card .n{font-family:var(--head);font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.04em;margin-bottom:6px}
+.card.soft{background:var(--surface2)}
+.card.acc{border-color:rgba(111,160,255,.4);background:linear-gradient(180deg,var(--accent-bg),var(--surface))}
+
+ul.pts{list-style:none;display:flex;flex-direction:column;gap:12px}
+ul.pts li{font-size:16.5px;line-height:1.55;color:var(--text2);padding-left:22px;position:relative}
+ul.pts li::before{content:'';position:absolute;left:2px;top:9px;width:7px;height:7px;border-radius:2px;
+  background:var(--accent);transform:rotate(45deg)}
+ul.pts li b{color:var(--text);font-weight:700}
+ul.pts li .sub{display:block;color:var(--text3);font-size:.86em;margin-top:3px;line-height:1.45}
+ul.pts.sm li{font-size:14.5px;gap:9px}
+
+.badge{display:inline-block;font-family:var(--head);font-size:11.5px;font-weight:700;padding:3px 9px;
+  border-radius:20px;white-space:nowrap;border:1px solid transparent;letter-spacing:.02em;vertical-align:middle}
+.b-accent{color:var(--accent);background:var(--accent-bg);border-color:rgba(111,160,255,.4)}
+.b-ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(67,196,149,.4)}
+.b-warn{color:var(--warn);background:var(--warn-bg);border-color:rgba(231,174,75,.4)}
+
+/* ── 표 ────────────────────────────────────────────────────────── */
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+th{background:var(--surface2);color:var(--text);font-weight:700;font-size:13px;font-family:var(--head);white-space:nowrap}
+td{color:var(--text2)}td b{color:var(--text);font-weight:700}
+tr:last-child td{border-bottom:none}
+table.sm{font-size:13.5px}table.sm th,table.sm td{padding:7px 11px}
+.tcmd{font-family:var(--mono);color:var(--accent);font-weight:700;white-space:nowrap}
+
+/* ── 코드 / 키캡 / 인라인 ──────────────────────────────────────── */
+.cmd{font-family:var(--mono);font-size:.9em;background:var(--surface2);color:#cfe0ff;
+  padding:2px 7px;border-radius:6px;border:1px solid var(--border);white-space:nowrap}
+.code{font-family:var(--mono);font-size:15px;line-height:1.75;background:var(--code);
+  border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;color:#d8e3f5}
+.code .p{color:var(--text3)}.code .k{color:var(--accent);font-weight:700}.code .s{color:var(--ok)}
+.code .c{color:var(--text3);font-style:italic}
+.kbd{display:inline-block;font-family:var(--mono);font-size:.85em;font-weight:700;padding:3px 9px;
+  border-radius:7px;background:var(--surface2);border:1px solid var(--border);border-bottom-width:2.5px;
+  color:var(--text);white-space:nowrap}
+
+/* ── 파이프라인 / 단계 다이어그램 ─────────────────────────────── */
+.pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.node{border:1.5px solid var(--border);border-radius:10px;padding:10px 15px;background:var(--surface);
+  font-family:var(--head);font-weight:700;font-size:15px;white-space:nowrap;text-align:center;line-height:1.25}
+.node .t2{display:block;font-family:var(--sans);font-weight:400;font-size:.72em;color:var(--text3);margin-top:2px}
+.node.hot{border-color:var(--accent);background:linear-gradient(180deg,var(--accent-bg),var(--surface));color:#dbe8ff}
+.node.hot .t2{color:var(--accent)}
+.arw{color:var(--accent);font-size:20px;font-weight:800;line-height:1}
+.flow{display:flex;flex-direction:column;gap:11px}
+.step{display:flex;align-items:flex-start;gap:15px}
+.step .sn{flex:none;width:34px;height:34px;border-radius:9px;background:var(--accent-bg);
+  border:1px solid rgba(111,160,255,.4);color:var(--accent);font-family:var(--head);font-weight:700;
+  display:grid;place-items:center;font-size:15px}
+.step .sc{flex:1}
+.step .sh{font-family:var(--head);font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px}
+.step .sd{font-size:14px;color:var(--text2);line-height:1.5}
+.step .sd b{color:var(--text)}
+
+.callout{background:var(--warn-bg);border:1px solid rgba(231,174,75,.4);border-radius:var(--radius);
+  padding:14px 18px;display:flex;gap:12px;align-items:flex-start}
+.callout.ok{background:var(--ok-bg);border-color:rgba(67,196,149,.4)}
+.callout.acc{background:var(--accent-bg);border-color:rgba(111,160,255,.4)}
+.callout .ic{flex:none;margin-top:1px}
+.callout.ok .ic{color:var(--ok)}.callout .ic{color:var(--warn)}.callout.acc .ic{color:var(--accent)}
+.callout p{font-size:14.5px;line-height:1.58;color:var(--text2)}
+.callout p b{color:var(--text)}
+
+/* ── 아이콘 ────────────────────────────────────────────────────── */
+.ic{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.ic-lg{width:26px;height:26px}.ic-xl{width:40px;height:40px;stroke-width:1.6}.ic-sm{width:15px;height:15px}
+.ic.fill{fill:currentColor;stroke:none}
+
+/* ── 밀도 조절 ─────────────────────────────────────────────────── */
+.dense h1.title{font-size:30px;margin-bottom:12px}
+.dense .lede{font-size:18px;margin-bottom:18px}
+.dense ul.pts li{font-size:15px}
+
+/* ── 표지 / 섹션 슬라이드 ──────────────────────────────────────── */
+.title-slide{justify-content:center;background:
+  radial-gradient(120% 95% at 85% 6%,rgba(111,160,255,.22) 0%,transparent 50%),
+  radial-gradient(120% 95% at 8% 100%,rgba(156,140,255,.16) 0%,transparent 48%),var(--bg2)}
+.title-slide .eyebrow{font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:22px;display:flex;align-items:center;gap:11px}
+.title-slide h1{font-family:var(--head);font-size:64px;line-height:1.08;font-weight:700;letter-spacing:-.02em}
+.title-slide h1 .x{color:var(--accent);font-weight:300}
+.title-slide .sub{font-size:24px;color:var(--text2);margin-top:22px;font-weight:400;max-width:30ch;line-height:1.4}
+.title-slide .tags{display:flex;gap:10px;margin-top:34px}
+
+.section-slide{justify-content:center;background:
+  linear-gradient(125deg,#0E1A30 0%,#0A1120 60%);}
+.section-slide .snum{font-family:var(--head);font-size:20px;font-weight:700;color:var(--accent);
+  letter-spacing:.12em;margin-bottom:18px}
+.section-slide h1{font-family:var(--head);font-size:52px;line-height:1.14;font-weight:700;letter-spacing:-.02em;max-width:24ch}
+.section-slide h1 em{font-style:normal;color:var(--accent)}
+.section-slide .sd{font-size:22px;color:var(--text2);margin-top:22px;max-width:40ch;line-height:1.45}
+
+.hl{color:var(--accent);font-weight:700}
+.mut{color:var(--text3)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center;height:100%}
+.center{align-items:center;justify-content:center;text-align:center}
+
+/* ── 진행 크롬 ─────────────────────────────────────────────────── */
+#bar{position:fixed;left:0;top:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  width:0;z-index:20;transition:width .25s}
+#hint{position:fixed;bottom:12px;right:16px;font-size:11px;color:#3d4d66;z-index:20;font-family:var(--mono)}
+
+/* ── 브랜드 로고 (삼성 워드마크) ─────────────────────────────── */
+.logo-corner{position:absolute;top:36px;left:62px;height:21px;width:auto;opacity:.9;z-index:3}
+.logo-center{height:32px;width:auto;opacity:.95;margin-bottom:26px}
+
+/* ── 전체 슬라이드 목차 메뉴 ─────────────────────────────────── */
+#menuBtn{position:fixed;top:13px;right:15px;z-index:30;display:flex;align-items:center;gap:7px;
+  font-family:var(--head);font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer;
+  background:rgba(20,31,51,.82);border:1px solid var(--border);border-radius:9px;padding:7px 12px}
+#menuBtn:hover{color:var(--text);border-color:var(--accent)}
+#menuBtn .ic{width:15px;height:15px;color:var(--accent)}
+#menu{position:fixed;inset:0;z-index:40;background:rgba(5,8,15,.94);display:none;flex-direction:column;padding:44px 56px 40px}
+#menu.open{display:flex}
+#menu h2{font-family:var(--head);font-size:21px;font-weight:700;color:var(--text)}
+#menu .mt{font-size:12.5px;color:var(--text3);margin:5px 0 20px}
+#menuGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;overflow:auto;align-content:start}
+.mitem{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surface);
+  border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer;color:var(--text2)}
+.mitem:hover{border-color:var(--accent);background:var(--surface2);color:var(--text)}
+.mitem.cur{border-color:var(--accent);background:var(--accent-bg);color:var(--text)}
+.mitem .mn{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--accent);flex:none;min-width:20px;padding-top:1px}
+.mitem .ml{font-size:13px;line-height:1.32;font-weight:600}
+#menuClose{position:absolute;top:18px;right:22px;color:var(--text3);font-size:15px;cursor:pointer;
+  background:none;border:none;font-family:var(--head);font-weight:700}
+#menuClose:hover{color:var(--text)}
+
+/* ── 인쇄 / PDF : 모든 슬라이드를 한 장씩 출력 ───────────────── */
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{overflow:visible!important;height:auto!important;background:#05080F}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  #viewport{position:static!important;display:block!important}
+  #stage{position:static!important;transform:none!important;width:1280px!important;height:auto!important}
+  .slide{display:flex!important;position:relative!important;inset:auto!important;
+    width:1280px!important;height:720px!important;overflow:hidden;border-radius:0}
+  .slide + .slide{page-break-before:always;break-before:page}
+  #bar,#hint,#menuBtn,#menu{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- 아이콘 스프라이트 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+<symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+<symbol id="i-cam" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3M16 7l3 3M14 9l2 2"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></symbol>
+</defs></svg>
+
+<div id="bar"></div>
+
+<div id="viewport"><div id="stage">
+
+<!-- ══ 1. 표지 ══════════════════════════════════════════════════ -->
+<section class="slide title-slide">
+  <img class="logo-corner" src="assets/samsung-wordmark-white.png" alt="SAMSUNG">
+  <div class="eyebrow"><svg class="ic"><use href="#i-bolt"/></svg>사내 테크 세미나</div>
+  <h1>Claude Code <span class="x">×</span> GitHub</h1>
+  <div class="sub">코드를 몰라도 괜찮습니다.<br>말로 지시하면 AI가 일합니다 — 업무 자동화 실전 가이드</div>
+  <div class="tags">
+    <span class="badge b-accent">비개발자 대상</span>
+    <span class="badge b-ok">Windows 환경</span>
+    <span class="badge b-warn">따라 하기 실습</span>
+  </div>
+  <div class="byline" style="margin-top:30px;font-family:var(--head);font-size:17px;color:var(--text2)">
+    <span style="color:var(--accent);font-weight:700">AX Lab</span>
+    <span style="color:var(--text3);margin:0 9px">·</span>
+    <b style="color:var(--text)">Jonghwa Choi</b>
+  </div>
+</section>
+
+<!-- ══ 2. 목차 ══════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">AGENDA</span> · 오늘의 흐름</div>
+  <h1 class="title">준비 → 연결 → 자동화, 11단계로 배웁니다</h1>
+  <div class="body top">
+    <div class="grid g3" style="gap:12px 20px">
+      <div class="card soft"><div class="n">01</div><p><b>왜 해야 하는가</b><br>무엇이 좋아지나</p></div>
+      <div class="card soft"><div class="n">02</div><p><b>환경 설정</b><br>VS Code · Claude Code 설치</p></div>
+      <div class="card soft"><div class="n">03</div><p><b>여기서부터</b><br>Claude Code 안에서</p></div>
+      <div class="card soft"><div class="n">04</div><p><b>GitHub 연동</b><br>원리와 연결 방법</p></div>
+      <div class="card soft"><div class="n">05</div><p><b>문서 관리·질의</b><br>저장소를 지식으로</p></div>
+      <div class="card soft"><div class="n">06</div><p><b>메모(.md) 기록</b><br>AI가 이해하는 방식</p></div>
+      <div class="card soft"><div class="n">07</div><p><b>CLAUDE.md</b><br>AI에게 주는 규칙서</p></div>
+      <div class="card soft"><div class="n">08</div><p><b>명령 예시·팁</b><br>실전 프롬프트</p></div>
+      <div class="card soft"><div class="n">09</div><p><b>이 문서의 제작</b><br>만든 과정 공개</p></div>
+      <div class="card soft"><div class="n">10</div><p><b>작업 흐름 요약</b><br>한 장으로 정리</p></div>
+      <div class="card soft"><div class="n">11</div><p><b>마무리</b><br>일은 AI, 결정은 나</p></div>
+      <div class="card acc"><div class="n" style="color:var(--accent)">핵심</div><p><b>실행은 위임,<br>검토·결정은 직접</b></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 3. [1] 패러다임 전환 ═════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">01</span> · 왜 해야 하는가</div>
+  <h1 class="title">달라진 건 하나 — <b>이제 도구에게 "말로" 시킵니다</b></h1>
+  <div class="lede">실리콘밸리에서 시작된 흐름의 핵심은 "AI가 코드를 대신 짠다"가 아니라,
+    <em>사람이 자연어로 목적을 말하면 AI가 실제 작업을 수행한다</em>는 것입니다.</div>
+  <div class="body">
+    <div class="grid g2" style="gap:20px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-clock"/></svg>예전 방식</h3>
+        <ul class="pts sm" style="gap:9px;margin-top:6px">
+          <li>내가 직접 문서를 열고, 찾고, 정리하고, 옮겨 적는다</li>
+          <li>반복 작업을 매번 수작업으로</li>
+          <li>"할 줄 아는 사람"에게 부탁해야만 가능</li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-bolt"/></svg>지금 방식</h3>
+        <ul class="pts sm" style="gap:9px;margin-top:6px">
+          <li><b>목적</b>을 말로 전달하면 AI가 파일을 읽고·쓰고·정리</li>
+          <li>반복 작업을 <b>지시 한 번</b>으로 자동화</li>
+          <li>코드를 몰라도 개발자용 도구의 생산성을 그대로</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 4. [1] 무엇이 좋은가 ═════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">01</span> · 무엇이 좋은가</div>
+  <h1 class="title">비개발자에게 특히 강력한 네 가지</h1>
+  <div class="body">
+    <div class="grid g4">
+      <div class="card"><h3><svg class="ic"><use href="#i-bolt"/></svg>자동화</h3><p>보고서 초안, 문서 취합, 데이터 정리 같은 <b>반복 업무</b>를 지시 한 번으로 끝냅니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-file"/></svg>일괄 처리</h3><p>여러 문서·표·이미지를 <b>한꺼번에</b> 읽어 요약·변환·작성합니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-users"/></svg>팀 공유</h3><p>결과물을 <b>GitHub</b>에 남겨 팀 누구나 최신본을 보고 이어받습니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-check"/></svg>재현·추적</h3><p>무엇을·언제·왜 바꿨는지 <b>기록으로</b> 남아 되돌리고 검토할 수 있습니다.</p></div>
+    </div>
+    <div class="callout acc" style="margin-top:22px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>핵심은 "AI가 똑똑해서"가 아니라 <b>목적 → 재료 → 기록 → 검토</b>의 흐름을 만들어 두면
+        같은 품질을 <b>반복해서</b> 얻는다는 점입니다. 오늘 그 흐름을 만듭니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 5. [2] VS Code 설치 ══════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 1</div>
+  <h1 class="title">먼저 작업실을 만듭니다 — VS Code 설치</h1>
+  <div class="lede">VS Code는 무료 <em>코드 편집기</em>지만, 우리에겐 <b>Claude Code를 실행할 창</b>이자
+    파일을 눈으로 확인하는 작업실입니다.</div>
+  <div class="body">
+    <div class="flow">
+      <div class="step"><div class="sn">1</div><div class="sc"><div class="sh">다운로드</div><div class="sd">브라우저에서 <span class="cmd">code.visualstudio.com</span> 접속 → <b>Download for Windows</b> 클릭</div></div></div>
+      <div class="step"><div class="sn">2</div><div class="sc"><div class="sh">설치</div><div class="sd">내려받은 설치 파일 실행 → "PATH에 추가"(Add to PATH) 옵션은 <b>체크된 채로</b> 다음 → 완료</div></div></div>
+      <div class="step"><div class="sn">3</div><div class="sc"><div class="sh">(선택) 한국어 팩</div><div class="sd">왼쪽 확장(Extensions) 아이콘 → "Korean" 검색 → Korean Language Pack 설치하면 메뉴가 한글로</div></div></div>
+    </div>
+    <div class="callout ok" style="margin-top:20px">
+      <svg class="ic ic-lg"><use href="#i-check"/></svg>
+      <p>설치가 끝나면 VS Code를 <b>실행</b>해 둡니다. 여기서 모든 작업이 이뤄집니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 6. [2] 터미널 + Claude Code 설치 ════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 2</div>
+  <h1 class="title">터미널을 열고 Claude Code를 설치합니다</h1>
+  <div class="body top">
+    <div class="grid g2" style="gap:22px;align-items:start">
+      <div>
+        <div class="card soft" style="margin-bottom:14px">
+          <h3><svg class="ic"><use href="#i-term"/></svg>터미널(명령 입력창) 열기</h3>
+          <p style="margin-top:4px">VS Code 상단 메뉴 <b>Terminal → New Terminal</b>, 또는 단축키 <span class="kbd">Ctrl</span> + <span class="kbd">`</span> (백틱).
+          아래에 <b>PowerShell</b> 창이 뜹니다 — 여기에 명령을 입력합니다.</p>
+        </div>
+        <div class="callout">
+          <svg class="ic ic-lg"><use href="#i-alert"/></svg>
+          <p>프롬프트가 <span class="cmd">PS C:\...&gt;</span> 로 시작하면 PowerShell이 맞습니다. 아니라면 오른쪽 <b>+</b> 옆 화살표에서 PowerShell을 선택하세요.</p>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:var(--head);font-weight:700;color:var(--text2);font-size:14px;margin-bottom:8px">설치 명령 (권장: 네이티브 설치 프로그램)</p>
+        <div class="code"><span class="c"># PowerShell에 붙여넣고 Enter</span><br><span class="k">irm</span> https://claude.ai/install.ps1 <span class="p">|</span> <span class="k">iex</span></div>
+        <p style="font-size:13px;color:var(--text3);margin:12px 0 8px;line-height:1.5">관리자 권한 불필요 · 자동 업데이트 · 가장 간단</p>
+        <p style="font-family:var(--head);font-weight:700;color:var(--text2);font-size:14px;margin-bottom:8px">대안</p>
+        <div class="code" style="font-size:13.5px"><span class="c"># Node.js가 있다면</span><br>npm install -g @anthropic-ai/claude-code<br><span class="c"># winget이 있다면</span><br>winget install Anthropic.ClaudeCode</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 7. [2] 첫 실행 & 로그인 ═════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 3</div>
+  <h1 class="title">실행하고 로그인합니다</h1>
+  <div class="body top">
+    <div class="grid g2" style="gap:22px;align-items:start">
+      <div>
+        <div class="code" style="margin-bottom:14px"><span class="c"># 작업할 폴더에서 실행</span><br><span class="k">claude</span></div>
+        <ul class="pts sm">
+          <li><b>처음 실행하면</b> 로그인 안내가 나옵니다 → 세션 안에서 <span class="cmd">/login</span> 입력 시 브라우저로 인증</li>
+          <li>인증이 끝나면 대화창에 <b>한국어로 지시</b>를 입력하면 됩니다</li>
+          <li>모델을 바꾸려면 <span class="cmd">/model opus</span> 처럼 입력</li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-bulb"/></svg>비개발자를 위한 마음가짐</h3>
+        <ul class="pts sm" style="margin-top:8px">
+          <li>명령은 <b>슬래시(/)</b>로 시작하고, 나머지는 <b>평범한 한국어 문장</b>이면 됩니다</li>
+          <li>완벽한 문장이 아니어도 됩니다 — <b>목적</b>과 <b>재료</b>만 분명하면 AI가 되묻습니다</li>
+          <li>겁내지 마세요. 실수해도 <span class="kbd">Esc</span>로 멈추고 다시 시키면 됩니다</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 8. [2] 명령어 표 ════════════════════════════════════════ -->
+<section class="slide dense">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 4</div>
+  <h1 class="title">꼭 알아 둘 명령어 8가지</h1>
+  <div class="body top">
+    <table class="sm">
+      <thead><tr><th style="width:150px">명령어</th><th>하는 일</th><th style="width:290px">터미널(CLI) 대안</th></tr></thead>
+      <tbody>
+        <tr><td class="tcmd">/login</td><td>Anthropic 계정으로 로그인</td><td>첫 실행 시 자동 안내</td></tr>
+        <tr><td class="tcmd">/model</td><td>사용할 AI 모델 변경 (opus·sonnet·haiku)</td><td><span class="cmd">claude --model opus</span></td></tr>
+        <tr><td class="tcmd">/effort</td><td>사고 깊이 조절 (low·medium·high·max)</td><td><span class="cmd">claude --effort high</span></td></tr>
+        <tr><td class="tcmd">/compact</td><td>길어진 대화를 요약해 맥락을 정리</td><td>세션 안에서만</td></tr>
+        <tr><td class="tcmd">/clear</td><td>대화를 비우고 새 대화 시작</td><td>세션 안에서만</td></tr>
+        <tr><td class="tcmd">/statusline</td><td>하단 상태줄 꾸미기 (모델·경로·git 표시)</td><td>세션 안에서만 (설정 파일 가능)</td></tr>
+        <tr><td class="tcmd">/usage</td><td>사용량·요금(플랜 한도) 확인</td><td>세션 안에서만</td></tr>
+        <tr><td class="tcmd">/resume</td><td>이전 대화를 골라 이어가기</td><td><span class="cmd">claude --resume</span> · <span class="cmd">-r</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--text3);margin-top:12px">입력창에 <span class="cmd">/</span> 만 치면 전체 명령 목록이 자동완성으로 뜹니다.</p>
+  </div>
+</section>
+
+<!-- ══ 9. [2] 단축키 ═══════════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 5</div>
+  <h1 class="title">손이 빨라지는 단축키</h1>
+  <div class="body top">
+    <div class="grid g2" style="gap:14px 26px">
+      <ul class="pts sm" style="gap:13px">
+        <li><span class="kbd">Esc</span> — 진행 중인 응답 <b>즉시 중단</b></li>
+        <li><span class="kbd">Esc</span> <span class="kbd">Esc</span> — 이전 메시지로 <b>되감기·수정</b>(rewind)<span class="sub">"아, 잘못 말했다" 할 때 앞 메시지를 고쳐 다시 보냄</span></li>
+        <li><span class="kbd">Shift</span> + <span class="kbd">Tab</span> — <b>모드 순환</b>(기본 → 자동수락 → 계획)</li>
+        <li><span class="kbd">↑</span> / <span class="kbd">↓</span> — 이전에 입력한 <b>내 메시지</b> 다시 불러오기</li>
+      </ul>
+      <ul class="pts sm" style="gap:13px">
+        <li><span class="kbd">@</span> 파일명 — 특정 <b>파일을 대화에 첨부</b> (예: @report.md)</li>
+        <li><span class="kbd">!</span> 명령 — 뒤의 <b>셸 명령을 바로 실행</b> (예: !dir)</li>
+        <li><span class="kbd">#</span> 내용 — 뒤 내용을 <b>기억(메모)</b>으로 저장</li>
+        <li><span class="kbd">Ctrl</span> + <span class="kbd">V</span> — 복사한 <b>스크린샷을 그대로 붙여넣기</b></li>
+      </ul>
+    </div>
+    <div class="callout acc" style="margin-top:18px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>가장 자주 쓰는 건 <span class="kbd">Esc</span>(멈춤), <span class="kbd">Esc</span><span class="kbd">Esc</span>(되감기),
+        <span class="kbd">Shift</span>+<span class="kbd">Tab</span>(모드 전환) 셋입니다. 이것만 익혀도 충분합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 10. [2] Auto 모드 ═══════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 6 · <span style="color:var(--ok)">AUTO MODE</span></div>
+  <h1 class="title">자동 모드 — 매번 묻지 않고 알아서 실행</h1>
+  <div class="lede">파일을 만들고 고치는 작업을 <b>매번 확인받지 않고</b> AI가 이어서 진행하는 모드입니다.
+    (정식 명칭 <em>accept edits</em> / 자동 수락)</div>
+  <div class="body">
+    <div class="grid g3">
+      <div class="card"><h3><svg class="ic"><use href="#i-gear"/></svg>켜는 법</h3><p><span class="kbd">Shift</span>+<span class="kbd">Tab</span> 한 번 → 하단에 <b>"accept edits on"</b> 표시.<br>시작부터 켜려면 <span class="cmd">claude --permission-mode acceptEdits</span></p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-bolt"/></svg>언제 쓰나</h3><p>방향이 <b>분명하고</b> 반복적인 작업, 결과를 나중에 한꺼번에 검토할 때. 속도가 크게 빨라집니다.</p></div>
+      <div class="card warn" style="border-color:rgba(231,174,75,.4)"><h3><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg>주의</h3><p>파일이 <b>자동으로 바뀝니다.</b> 중요한 폴더는 <b>GitHub로 백업</b>해 두면 언제든 되돌릴 수 있습니다.</p></div>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      <svg class="ic ic-lg"><use href="#i-alert"/></svg>
+      <p>비개발자 권장 순서: <b>먼저 계획 모드로 계획을 확인</b>하고 → 자동 모드로 실행. 위험한 셸 명령은 자동 모드에서도 대개 <b>한 번 더 확인</b>을 받습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 11. [2] Plan 모드 ═══════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">02</span> · 환경 설정 — 7 · <span style="color:var(--accent)">PLAN MODE</span></div>
+  <h1 class="title">계획 모드 — 먼저 계획만, 승인 후 실행</h1>
+  <div class="lede">AI가 <b>파일을 건드리지 않고</b> 읽고 조사만 해서 "이렇게 하겠습니다"라는 <em>계획</em>을 먼저 보여 줍니다.
+    당신이 <b>승인해야</b> 실제 작업이 시작됩니다.</div>
+  <div class="body">
+    <div class="grid g2" style="gap:20px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-list"/></svg>쓰는 법</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>켜기: <span class="kbd">Shift</span>+<span class="kbd">Tab</span> 두 번 (기본→자동수락→계획)</li>
+          <li>또는 시작 시 <span class="cmd">claude --permission-mode plan</span></li>
+          <li>계획 제시 후 <b>승인 / 수정 요청 / 계속 계획</b> 중 선택</li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-check"/></svg>왜 좋은가 (특히 비개발자)</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>어려운 코드 대신 <b>글로 된 계획</b>을 검토하므로 이해하기 쉬움</li>
+          <li>큰 작업 전에 <b>방향을 먼저 맞춰</b> 실수를 예방</li>
+          <li>"잠깐, 그건 아니야"를 <b>실행 전에</b> 말할 수 있음</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout acc" style="margin-top:18px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p><b>이 세미나 자료도</b> 계획 모드로 계획을 먼저 승인받은 뒤 만들었습니다. (→ 09장에서 그 과정을 공개합니다)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 12. [3] 섹션 구분 ═══════════════════════════════════════ -->
+<section class="slide section-slide">
+  <div class="snum">PART · 03</div>
+  <h1>여기서부터는 모두<br><em>Claude Code 안에서</em> 이뤄집니다</h1>
+  <div class="sd">설치와 준비는 끝났습니다. 이제부터는 대화창에 목적을 말하는 것만으로
+    GitHub 연결·문서 작성·자동화가 진행됩니다.</div>
+</section>
+
+<!-- ══ 13. [4] GitHub란 ════════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">04</span> · GitHub 연동 — 1</div>
+  <h1 class="title">GitHub는 <b>"기록이 남는 팀 공유 드라이브"</b>입니다</h1>
+  <div class="lede">코드·문서를 담는 클라우드 저장소(<em>repository</em>)입니다. 익숙한 것에 비유하면 —</div>
+  <div class="body">
+    <div class="grid g3">
+      <div class="card"><h3><svg class="ic"><use href="#i-folder"/></svg>공유 드라이브</h3><p>파일을 한곳에 모아 <b>팀 전체가 같은 최신본</b>을 봅니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-clock"/></svg>+ 타임머신</h3><p>누가·언제·무엇을 바꿨는지 <b>전부 기록</b>되어 과거로 되돌릴 수 있습니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-users"/></svg>+ 결재·리뷰</h3><p>반영 전에 <b>확인·의견(PR)</b>을 거쳐 안전하게 합칩니다.</p></div>
+    </div>
+    <div class="callout acc" style="margin-top:22px">
+      <svg class="ic ic-lg"><use href="#i-github"/></svg>
+      <p>우리에게 GitHub가 특별한 이유: <b>Claude(AI)가 읽고 쓰는 작업 공간</b>이 되기 때문입니다.
+        결과물을 여기에 남기면 다음 작업 때 AI가 그대로 이어받습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 14. [4] 왜 쓰나 (목적) ══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">04</span> · GitHub 연동 — 2</div>
+  <h1 class="title">무엇을 위해 쓰는가</h1>
+  <div class="body">
+    <div class="grid g2" style="gap:18px">
+      <div class="card"><h3><svg class="ic"><use href="#i-users"/></svg>한 곳에서 협업</h3><p>흩어진 파일·버전 혼란 없이, 팀이 <b>하나의 저장소</b>에서 같은 자료로 일합니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-clock"/></svg>이력 추적·되돌리기</h3><p>변경마다 스냅샷이 남아 <b>"3일 전 상태"로 복구</b>하거나 비교할 수 있습니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-check"/></svg>검토(PR) 후 반영</h3><p>바로 덮어쓰지 않고 <b>확인을 거쳐</b> 합쳐 실수를 줄입니다.</p></div>
+      <div class="card acc"><h3><svg class="ic"><use href="#i-cpu"/></svg>AI의 지식 저장소</h3><p>산출물·규칙·기록을 저장소에 두면 <b>AI가 맥락을 이해</b>하고 이어서 작업합니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 15. [4] 연결하기 ════════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">04</span> · GitHub 연동 — 3</div>
+  <h1 class="title">Claude Code에서 저장소에 연결하기</h1>
+  <div class="body top">
+    <div class="flow">
+      <div class="step"><div class="sn">1</div><div class="sc"><div class="sh">GitHub에 로그인(인증)</div><div class="sd"><span class="cmd">gh auth login</span> 입력 → 안내에 따라 브라우저로 로그인 <span class="mut">(gh = GitHub 공식 도구)</span></div></div></div>
+      <div class="step"><div class="sn">2</div><div class="sc"><div class="sh">저장소 가져오기(clone)</div><div class="sd"><span class="cmd">gh repo clone AXLAB/c4-content-intelligence-agent</span> → 저장소가 내 PC 폴더로 복제됩니다</div></div></div>
+      <div class="step"><div class="sn">3</div><div class="sc"><div class="sh">그 폴더에서 작업 시작</div><div class="sd">복제된 폴더에서 <span class="cmd">claude</span> 실행 → Claude가 그 저장소를 <b>작업 맥락으로 인식</b>합니다</div></div></div>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>대부분은 이 한 문장으로 충분합니다 — <span class="cmd">"AXLAB/c4-content-intelligence-agent 저장소를 클론해서 그 안에서 작업해줘"</span>.
+        나머지 명령은 AI가 대신 실행합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 16. [4] commit/push/pull/PR 원리 ════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">04</span> · GitHub 연동 — 4</div>
+  <h1 class="title">commit · push · pull · PR — 4단어의 원리</h1>
+  <div class="body top">
+    <div class="pipe" style="margin:6px 0 22px">
+      <span class="node">내 PC<span class="t2">로컬</span></span>
+      <span class="arw">— commit →</span>
+      <span class="node hot">스냅샷 기록<span class="t2">commit</span></span>
+      <span class="arw">— push →</span>
+      <span class="node"><svg class="ic ic-sm" style="vertical-align:-2px"><use href="#i-github"/></svg> GitHub<span class="t2">원격</span></span>
+      <span class="arw">← pull —</span>
+      <span class="node">최신본 받기<span class="t2">pull</span></span>
+    </div>
+    <table class="sm">
+      <tbody>
+        <tr><td style="width:120px"><b class="tcmd" style="color:var(--text)">commit</b></td><td>바뀐 내용을 메시지와 함께 <b>스냅샷</b>으로 기록</td><td class="mut">= 문서 "저장"</td></tr>
+        <tr><td><b class="tcmd" style="color:var(--text)">push</b></td><td>내 PC의 커밋들을 <b>GitHub로 올리기</b></td><td class="mut">= 공유 드라이브에 업로드</td></tr>
+        <tr><td><b class="tcmd" style="color:var(--text)">pull</b></td><td>GitHub의 최신 내용을 <b>내 PC로 내려받기</b></td><td class="mut">= 최신본 다운로드</td></tr>
+        <tr><td><b class="tcmd" style="color:var(--text)">PR</b></td><td>"이 변경을 반영해도 될까요?" <b>검토 요청</b> → 승인 후 병합</td><td class="mut">= 반영 전 결재</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--text3);margin-top:12px">실무에선 <b>"작업 내용을 커밋하고 푸시해줘"</b>, <b>"이 변경으로 PR 만들어줘"</b>처럼 말하면 AI가 처리합니다.</p>
+  </div>
+</section>
+
+<!-- ══ 17. [5] repo 문서 관리 ══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">05</span> · 문서 관리·질의 — 1</div>
+  <h1 class="title">저장소에 문서를 두고 관리합니다</h1>
+  <div class="lede">코드뿐 아니라 <em>기획·회의록·스펙·가이드</em>를 저장소 안 <span class="cmd">docs/</span> 폴더에 두면,
+    문서도 <b>이력·검토·공유</b>의 대상이 됩니다.</div>
+  <div class="body">
+    <div class="grid g2" style="gap:20px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-folder"/></svg>이렇게 둡니다</h3>
+        <div class="code" style="font-size:13.5px;margin-top:8px">저장소/<br>├─ <span class="k">docs/</span>        <span class="c"># 최종 문서</span><br>│   ├─ 기획안.md<br>│   └─ 회의록_260715.md<br>├─ <span class="k">scratch/</span>     <span class="c"># 중간 메모</span><br>└─ CLAUDE.md      <span class="c"># AI 규칙서</span></div>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-search"/></svg>그러면 이렇게 씁니다</h3>
+        <ul class="pts sm" style="margin-top:8px">
+          <li>"이 저장소의 <b>PVI API 스펙</b>을 요약해줘"</li>
+          <li>"회의록들에서 <b>내게 배정된 할 일</b>만 뽑아줘"</li>
+          <li>"기획안과 회의록이 <b>서로 안 맞는 부분</b> 있어?"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 18. [5] 질의 원리 ═══════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">05</span> · 문서 관리·질의 — 2</div>
+  <h1 class="title">원리 — AI는 "필요한 부분만 찾아 읽습니다"</h1>
+  <div class="lede">Claude는 저장소를 통째로 외우지 않습니다. 질문을 받으면 그때그때
+    <b>검색 → 파일 찾기 → 해당 부분 읽기</b>로 <em>관련된 곳만</em> 꺼내 근거로 삼습니다.</div>
+  <div class="body">
+    <div class="pipe" style="margin-bottom:22px">
+      <span class="node">질문<span class="t2">무엇을 묻는가</span></span><span class="arw">→</span>
+      <span class="node hot"><svg class="ic ic-sm" style="vertical-align:-2px"><use href="#i-search"/></svg> 검색<span class="t2">관련 단어 찾기</span></span><span class="arw">→</span>
+      <span class="node hot"><svg class="ic ic-sm" style="vertical-align:-2px"><use href="#i-file"/></svg> 읽기<span class="t2">해당 파일만</span></span><span class="arw">→</span>
+      <span class="node">근거 있는 답<span class="t2">출처와 함께</span></span>
+    </div>
+    <div class="callout acc">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>그래서 <b>폴더·파일 이름이 명확할수록</b> 더 빠르고 정확합니다.
+        "그 문서"보다 <b>"docs/기획안.md의 3장"</b>처럼 짚어 주면 최고입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 19. [6] 왜 md로 기록 ════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">06</span> · 메모(.md) 기록 — 1</div>
+  <h1 class="title">AI는 생각·기록을 <b>.md 파일</b>로 남기고 서로 <b>링크</b>합니다</h1>
+  <div class="lede"><em>.md(마크다운)</em>는 서식이 있는 <b>일반 텍스트</b>입니다. AI는 중간 결과와 메모를 md로 적고,
+    문서끼리 <span class="cmd">[[다른문서]]</span>로 연결해 다음에 <b>그 링크만 따라가</b> 빠르게 이해합니다.</div>
+  <div class="body">
+    <div class="grid g3">
+      <div class="card"><h3><svg class="ic"><use href="#i-file"/></svg>사람도 읽기 쉬움</h3><p>특수 프로그램 없이 어디서나 열리는 <b>글자 그대로의</b> 문서입니다.</p></div>
+      <div class="card"><h3><svg class="ic"><use href="#i-git"/></svg>변경 비교가 됨</h3><p>GitHub가 <b>어디가 바뀌었는지</b> 줄 단위로 보여 줍니다(diff).</p></div>
+      <div class="card acc"><h3><svg class="ic"><use href="#i-cpu"/></svg>사람·AI 공용어</h3><p>사람이 검토하기도, AI가 이해하기도 <b>가장 편한</b> 형식입니다.</p></div>
+    </div>
+    <div class="callout acc" style="margin-top:20px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p><b>왜 중요한가:</b> 결과물을 md로 정리해 두면, 그것이 곧 <b>다음 작업의 재료이자 AI의 기억</b>이 됩니다.
+        작업이 쌓일수록 저장소가 똑똑해집니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 20. [6] 관리법 ══════════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">06</span> · 메모(.md) 기록 — 2</div>
+  <h1 class="title">어떻게 관리하나</h1>
+  <div class="body">
+    <div class="grid g2" style="gap:20px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-folder"/></svg>자리를 나눕니다</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li><span class="cmd">docs/</span> — 완성된 <b>최종 문서</b></li>
+          <li><span class="cmd">scratch/</span> — 중간 계산·초안 등 <b>임시 기록</b></li>
+          <li>한 파일 = <b>한 주제</b>, 이름에 <b>날짜·주제</b>를 담기</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-check"/></svg>습관을 정합니다</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>살아 있는 문서는 <b>링크로 연결</b>, 낡은 스크래치는 <b>정리·삭제</b></li>
+          <li>결과를 낼 때 <b>"먼저 md로 정리하고"</b> → 그다음 최종 형태로</li>
+          <li>"이번 작업 요약을 <span class="cmd">docs/</span>에 md로 남겨줘"라고 지시</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout ok" style="margin-top:18px">
+      <svg class="ic ic-lg"><use href="#i-check"/></svg>
+      <p>규칙이 거창할 필요 없습니다. <b>"최종은 docs, 임시는 scratch, 하나에 한 주제"</b> 세 가지면 충분합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 21. [7] CLAUDE.md 원리 ══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">07</span> · CLAUDE.md — 원리</div>
+  <h1 class="title">CLAUDE.md는 AI에게 주는 <b>"항상 지킬 규칙서"</b></h1>
+  <div class="lede">저장소에 <span class="cmd">CLAUDE.md</span> 파일을 두면, Claude가 <b>대화를 시작할 때마다 자동으로 읽어</b>
+    그 내용을 규칙으로 따릅니다. 매번 설명하지 않아도 됩니다.</div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <ul class="pts">
+          <li><b>자동 로드</b> — 세션마다 먼저 읽힙니다. 별도 명령 불필요</li>
+          <li><b>계층 구조</b> — 전역 규칙 + 프로젝트 규칙이 합쳐짐</li>
+          <li><b>충돌 시</b> — 더 가까운 <b>프로젝트 규칙이 우선</b></li>
+        </ul>
+      </div>
+      <div>
+        <div class="flow">
+          <div class="step"><div class="sn" style="width:44px"><svg class="ic"><use href="#i-gear"/></svg></div><div class="sc"><div class="sh">전역 ~/.claude/CLAUDE.md</div><div class="sd">모든 프로젝트에 적용되는 <b>내 공통 규칙</b></div></div></div>
+          <div class="step"><div class="sn" style="width:44px"><svg class="ic"><use href="#i-folder"/></svg></div><div class="sc"><div class="sh">프로젝트 CLAUDE.md</div><div class="sd">이 저장소에만 적용되는 <b>세부 규칙</b> (우선)</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 22. [7] CLAUDE.md 활용 ══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">07</span> · CLAUDE.md — 활용</div>
+  <h1 class="title">무엇을 적고, 어떻게 만드나</h1>
+  <div class="body top">
+    <div class="grid g2" style="gap:22px;align-items:start">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-list"/></svg>이런 것을 적습니다</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>사용 <b>언어</b> ("문서·커밋은 한국어로")</li>
+          <li>폴더 구조·<b>자주 쓰는 경로</b></li>
+          <li>지켜야 할 <b>규칙·금지사항</b></li>
+          <li>회사 환경 (예: "프록시 경유", "gh CLI 사용")</li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-bolt"/></svg>이렇게 만듭니다</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>프로젝트 폴더에서 <span class="cmd">/init</span> → AI가 <b>초안 생성</b></li>
+          <li>초안을 읽고 <b>내 규칙을 덧붙여</b> 다듬기</li>
+          <li>새 규칙이 생기면 <span class="kbd">#</span> 로 그때그때 <b>추가</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout acc" style="margin-top:18px">
+      <svg class="ic ic-lg"><use href="#i-check"/></svg>
+      <p>실제 예 — 이 워크스페이스의 CLAUDE.md에는 <b>"한국어 프로젝트는 한국어로 작성", "GitHub는 gh CLI 사용",
+        "폴더별 역할"</b>이 적혀 있어, AI가 매번 같은 방식으로 일합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 23. [8] 예시 1 (auto) ═══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">08</span> · 명령 예시 — 1 · <span style="color:var(--ok)">AUTO MODE</span></div>
+  <h1 class="title">예시 ① 로컬 문서 + GitHub를 함께 이해시켜 작성</h1>
+  <div class="body top">
+    <div class="code" style="font-size:15.5px;line-height:1.7;margin-bottom:18px">
+      <span class="p">&gt;</span> 내 로컬 PC의 문서 <span class="s">C:\내문서\report_template.xlsx</span> 를 보고,<br>
+      &nbsp;&nbsp;현재 연결된 github <span class="s">AXLAB/c4-content-intelligence-agent</span> 의 내용을<br>
+      &nbsp;&nbsp;이해해서 작성해줘. 오류가 있으면 알려줘. <span class="k">(auto mode)</span>
+    </div>
+    <div class="grid g2" style="gap:18px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-cpu"/></svg>AI가 하는 일</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>로컬 엑셀 <b>양식을 읽고</b> 구조 파악</li>
+          <li>연결된 저장소를 <b>검색·이해</b></li>
+          <li>자동 수락으로 <b>결과물 작성</b></li>
+          <li>불일치·<b>오류를 함께 보고</b></li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-bulb"/></svg>왜 auto mode</h3>
+        <p style="margin-top:4px">방향이 분명하고("양식대로 채워") 결과를 <b>나중에 한 번에 검토</b>하면 되는 작업이라,
+          매 편집을 확인받지 않고 <b>빠르게 끝내기</b> 위함입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 24. [8] 예시 2 (plan) ═══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">08</span> · 명령 예시 — 2 · <span style="color:var(--accent)">PLAN MODE</span></div>
+  <h1 class="title">예시 ② 스크린샷을 검토해 "계획부터" 세우게</h1>
+  <div class="body top">
+    <div class="code" style="font-size:15.5px;line-height:1.7;margin-bottom:18px">
+      <span class="p">&gt;</span> 이번 주 작업한 내용을 <span class="s">docx 문서</span>로 작성하고 싶어.<br>
+      &nbsp;&nbsp;첨부한 <span class="s">스크린샷</span>을 검토해서 작성한 뒤에, 어떤 내용을 쓸지<br>
+      &nbsp;&nbsp;계획을 세워서 나한테 맞는지 질문해. <span class="k">(plan mode)</span>
+    </div>
+    <div class="grid g2" style="gap:18px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-list"/></svg>AI가 하는 일</h3>
+        <ul class="pts sm" style="margin-top:6px">
+          <li>스크린샷을 <b>분석</b>해 작업 내용 파악</li>
+          <li>문서 <b>구성(목차) 계획</b>을 제시</li>
+          <li>"이 방향 맞나요?" <b>확인 질문</b></li>
+          <li>승인 후 <b>docx로 작성</b></li>
+        </ul>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-check"/></svg>왜 plan mode</h3>
+        <p style="margin-top:4px">결과 <b>형태와 방향이 중요</b>할 때, 바로 만들지 않고 <b>계획을 먼저 맞춰</b>
+          헛수고를 막습니다. 원하는 문서가 한 번에 나옵니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 25. [8] 팁: 스크린샷 ════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">08</span> · 실전 팁 · <svg class="ic ic-sm" style="vertical-align:-2px;color:var(--accent)"><use href="#i-cam"/></svg> 스크린샷</div>
+  <h1 class="title">스크린샷을 AI에게 건네는 법</h1>
+  <div class="body top">
+    <div class="flow">
+      <div class="step"><div class="sn"><svg class="ic"><use href="#i-cam"/></svg></div><div class="sc"><div class="sh"><span class="kbd">Win</span> + <span class="kbd">Shift</span> + <span class="kbd">S</span> — 영역 캡처</div><div class="sd">화면 일부를 드래그로 선택 → <b>클립보드에 복사</b>됩니다 (가장 많이 씀)</div></div></div>
+      <div class="step"><div class="sn"><svg class="ic"><use href="#i-dl"/></svg></div><div class="sc"><div class="sh"><span class="kbd">Win</span> + <span class="kbd">PrtSc</span> — 전체 화면 저장</div><div class="sd">전체 화면을 <b>사진 폴더에 파일로</b> 저장합니다</div></div></div>
+      <div class="step"><div class="sn"><svg class="ic"><use href="#i-check"/></svg></div><div class="sc"><div class="sh">Claude에 붙여넣기</div><div class="sd">입력창에서 <span class="kbd">Ctrl</span> + <span class="kbd">V</span> → 캡처한 이미지가 <b>그대로 첨부</b>됩니다. 파일을 <b>끌어다 놓기</b>도 가능</div></div></div>
+    </div>
+    <div class="callout acc" style="margin-top:20px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>화면·오류 메시지·디자인 시안을 말로 설명하기 어려울 땐 <b>캡처 → 붙여넣기</b>가 가장 빠릅니다.
+        "이 화면 보고 표로 정리해줘"처럼요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 26. [9] 원문 스크립트 ═══════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">09</span> · 이 문서의 제작 — 1</div>
+  <h1 class="title">이 자료를 만들 때 실제로 준 "지시문"</h1>
+  <div class="lede">특별한 기술이 아니라, <em>목적·대상·구성·재료</em>를 한 번에 적어 전달했을 뿐입니다.</div>
+  <div class="body">
+    <div class="code" style="font-size:14px;line-height:1.65">
+      <span class="c"># 목적·대상·스타일</span><br>
+      "HTML로 세미나 자료를 만들려고 해. 스타일은 첨부한 <span class="s">PDF</span>와 비슷하게.<br>
+      &nbsp;목표는 <span class="s">Claude Code와 GitHub를 연동해 업무를 자동화</span>하는 방법.<br>
+      &nbsp;대상은 <span class="s">비개발자</span>야.<br><br>
+      <span class="c"># 구성 (11개 챕터)</span><br>
+      &nbsp;1. 왜 해야 하는가 …  2. 설치·명령어·모드 …  4. GitHub 연동 …<br>
+      &nbsp;7. CLAUDE.md 활용 …  8. 명령 예시 …  11. 마무리<br>
+      &nbsp;<span class="p">챕터별 길이는 알아서 구성해줘."</span>
+    </div>
+    <div class="callout" style="margin-top:18px">
+      <svg class="ic ic-lg"><use href="#i-alert"/></svg>
+      <p>참고: 첨부한 PDF는 <b>회사 보안(DRM)으로 잠겨</b> 있어 AI가 열지 못했습니다. 그래서 스타일은
+        <b>사내 기존 슬라이드 덱 + 삼성 브랜드 폰트</b>로 대체해 만들기로 <b>함께 결정</b>했습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 27. [9] 작업 흐름 ═══════════════════════════════════════ -->
+<section class="slide dense">
+  <div class="kicker"><span class="cn">09</span> · 이 문서의 제작 — 2</div>
+  <h1 class="title">AI가 밟은 실제 작업 흐름</h1>
+  <div class="body top">
+    <div class="flow" style="gap:9px">
+      <div class="step"><div class="sn">1</div><div class="sc"><div class="sh">지시 접수 · 참고 PDF 열기 시도</div><div class="sd">→ <b>DRM 잠금</b> 확인 후 사용자에게 즉시 보고</div></div></div>
+      <div class="step"><div class="sn">2</div><div class="sc"><div class="sh">워크스페이스 탐색</div><div class="sd">쓸 수 있는 <b>삼성 폰트</b>와 <b>기존 슬라이드 덱</b> 2종을 발견 (스타일 근거 확보)</div></div></div>
+      <div class="step"><div class="sn">3</div><div class="sc"><div class="sh">확인 질문 3개</div><div class="sd">스타일·형식·폰트를 물어 <b>사용자가 결정</b> (슬라이드 덱 / 기존 덱 기반 / 삼성 폰트)</div></div></div>
+      <div class="step"><div class="sn">4</div><div class="sc"><div class="sh">계획 수립 → 승인 <span class="badge b-accent">plan mode</span></div><div class="sd">11개 챕터의 슬라이드 구성을 <b>계획으로 제시</b>하고 승인받음</div></div></div>
+      <div class="step"><div class="sn">5</div><div class="sc"><div class="sh">HTML 덱 작성 · 검토</div><div class="sd">기존 덱의 엔진·컴포넌트를 재사용해 <b>자체완결 HTML</b> 생성 → 브라우저로 확인</div></div></div>
+    </div>
+    <p style="font-size:13px;color:var(--text3);margin-top:12px">지금 보고 계신 이 슬라이드가 바로 그 결과물입니다.</p>
+  </div>
+</section>
+
+<!-- ══ 28. [10] 작업 흐름 요약 ═════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">10</span> · 작업 흐름 요약</div>
+  <h1 class="title">이 흐름 하나만 기억하세요</h1>
+  <div class="body">
+    <div class="pipe" style="gap:7px 8px;margin-bottom:22px">
+      <span class="node hot">Claude 실행</span><span class="arw">→</span>
+      <span class="node">목적 전달</span><span class="arw">→</span>
+      <span class="node">재료 제공<span class="t2">문서·스크린샷</span></span><span class="arw">→</span>
+      <span class="node"><svg class="ic ic-sm" style="vertical-align:-2px"><use href="#i-github"/></svg> GitHub 연결</span><span class="arw">→</span>
+      <span class="node hot">md로 먼저 정리<span class="t2">AI가 이해할 산출물</span></span>
+    </div>
+    <div class="pipe" style="gap:7px 8px">
+      <span class="node">스크래치 기록</span><span class="arw">→</span>
+      <span class="node">원하는 형태로 생성<span class="t2">docx·html …</span></span><span class="arw">→</span>
+      <span class="node">commit &amp; push</span><span class="arw">→</span>
+      <span class="node hot"><svg class="ic ic-sm" style="vertical-align:-2px"><use href="#i-check"/></svg> 전체 검토 요청<span class="t2">오류·일관성 확인</span></span>
+    </div>
+    <div class="callout acc" style="margin-top:24px">
+      <svg class="ic ic-lg"><use href="#i-bulb"/></svg>
+      <p>결과물을 <b>먼저 md로 정리</b>해 GitHub에 남기는 것이 핵심입니다 — 그것이 AI가 이해하기 쉬운 산출물이자,
+        <b>다음 작업의 출발점</b>이 됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 29. [11] 마무리 핵심 ════════════════════════════════════ -->
+<section class="slide">
+  <div class="kicker"><span class="cn">11</span> · 마무리</div>
+  <h1 class="title">일은 AI에게, <b>검토와 결정은 내가</b></h1>
+  <div class="body">
+    <div class="grid g2" style="gap:22px">
+      <div class="card">
+        <h3><svg class="ic"><use href="#i-cpu"/></svg>AI = 실행자</h3>
+        <p style="margin-top:4px">파일 읽기·쓰기, 검색, 정리, 문서 생성, 커밋·푸시 같은 <b>손이 많이 가는 실행</b>을 모두 맡깁니다.</p>
+      </div>
+      <div class="card acc">
+        <h3><svg class="ic"><use href="#i-flag"/></svg>나 = 감독·결정자</h3>
+        <p style="margin-top:4px"><b>목적을 정하고</b>, 중간에 방향을 <b>확인</b>하고, 최종 결과를 <b>검토·승인</b>합니다. 판단은 사람의 몫입니다.</p>
+      </div>
+    </div>
+    <div class="callout ok" style="margin-top:22px">
+      <svg class="ic ic-lg"><use href="#i-check"/></svg>
+      <p>좋은 결과의 열쇠 세 가지 — <b>명확한 목적</b> · <b>좋은 재료</b> · <b>검토하는 습관</b>.
+        기술이 아니라 이 태도가 차이를 만듭니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 30. 클로징 ══════════════════════════════════════════════ -->
+<section class="slide title-slide center">
+  <img class="logo-center" src="assets/samsung-wordmark-white.png" alt="SAMSUNG">
+  <div class="eyebrow" style="justify-content:center"><svg class="ic"><use href="#i-bolt"/></svg>이제, 시작해 봅시다</div>
+  <h1 style="font-size:56px">시작은 <span class="x">한 줄</span>이면 충분합니다</h1>
+  <div class="code" style="display:inline-block;margin-top:26px;font-size:22px;padding:16px 28px;text-align:left">
+    <span class="p">PS C:\내작업&gt;</span> <span class="k">claude</span>
+  </div>
+  <div class="sub" style="margin-top:26px;max-width:38ch">목적을 말하고 · 재료를 주고 · GitHub에 연결하고 · 검토하세요.<br>나머지는 AI가 합니다.</div>
+  <div class="byline" style="margin-top:30px;font-family:var(--head);font-size:16px;color:var(--text2)">
+    <span style="color:var(--accent);font-weight:700">AX Lab</span>
+    <span style="color:var(--text3);margin:0 9px">·</span>
+    <b style="color:var(--text)">Jonghwa Choi</b>
+  </div>
+</section>
+
+</div></div>
+
+<div id="hint">← → · Space · M(목차) · F(전체화면)</div>
+
+<!-- 전체 슬라이드 목차 -->
+<button id="menuBtn" title="전체 슬라이드 (M)"><svg class="ic"><use href="#i-list"/></svg>목차</button>
+<div id="menu">
+  <button id="menuClose" title="닫기 (Esc)">✕ 닫기</button>
+  <h2>전체 슬라이드</h2>
+  <div class="mt">클릭해서 이동 · Esc 또는 M으로 닫기</div>
+  <div id="menuGrid"></div>
+</div>
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var bar=document.getElementById('bar');
+  var menu=document.getElementById('menu'), grid=document.getElementById('menuGrid');
+  var i=Math.max(0,Math.min(slides.length-1,(parseInt(location.hash.slice(1),10)||1)-1));
+
+  // 각 슬라이드의 라벨 추출 (제목 우선, 없으면 kicker/섹션 번호)
+  function labelFor(s){
+    var t=s.querySelector('h1.title, h1');
+    var txt=t?t.textContent:(s.querySelector('.kicker')?s.querySelector('.kicker').textContent:'슬라이드');
+    return txt.replace(/\s+/g,' ').trim();
+  }
+  var items=[];
+  slides.forEach(function(s,k){
+    var b=document.createElement('button');
+    b.className='mitem';
+    b.innerHTML='<span class="mn">'+(k+1)+'</span><span class="ml"></span>';
+    b.querySelector('.ml').textContent=labelFor(s);
+    b.addEventListener('click',function(){ closeMenu(); show(k); });
+    grid.appendChild(b); items.push(b);
+  });
+
+  function fit(){
+    var s=Math.min(innerWidth/1280, innerHeight/720);
+    stage.style.transform='scale('+s+')';
+  }
+  function show(n){
+    i=(n+slides.length)%slides.length;            // 순환: 처음/끝에서 멈추지 않고 이어짐
+    for(var k=0;k<slides.length;k++) slides[k].classList.toggle('active',k===i);
+    bar.style.width=((i+1)/slides.length*100)+'%';
+    for(var j=0;j<items.length;j++) items[j].classList.toggle('cur',j===i);
+    if(history.replaceState) history.replaceState(null,'','#'+(i+1));
+  }
+  function next(){show(i+1);} function prev(){show(i-1);}
+
+  function openMenu(){ menu.classList.add('open'); items[i]&&items[i].scrollIntoView({block:'nearest'}); }
+  function closeMenu(){ menu.classList.remove('open'); }
+  function toggleMenu(){ menu.classList.contains('open')?closeMenu():openMenu(); }
+  document.getElementById('menuBtn').addEventListener('click',toggleMenu);
+  document.getElementById('menuClose').addEventListener('click',closeMenu);
+  menu.addEventListener('click',function(e){ if(e.target===menu) closeMenu(); });
+
+  addEventListener('resize',fit);
+  document.addEventListener('keydown',function(e){
+    var open=menu.classList.contains('open');
+    if(e.key==='Escape'){ if(open){e.preventDefault();closeMenu();} return; }
+    if(e.key==='m'||e.key==='M'||e.key==='ㅡ'){ e.preventDefault(); toggleMenu(); return; }
+    if(open) return;                              // 메뉴 열린 동안 이동 키 무시
+    if(['ArrowRight','PageDown',' '].indexOf(e.key)>-1){e.preventDefault();next();}
+    else if(['ArrowLeft','PageUp'].indexOf(e.key)>-1){e.preventDefault();prev();}
+    else if(e.key==='Home'){show(0);}
+    else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen&&document.exitFullscreen();}
+    }
+  });
+  document.getElementById('viewport').addEventListener('click',function(e){
+    if(menu.classList.contains('open')) return;
+    (e.clientX < innerWidth*0.30) ? prev() : next();
+  });
+  fit(); show(i);
+})();
+</script>
+</body>
+</html>
