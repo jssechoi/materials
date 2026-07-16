@@ -7,10 +7,7 @@
 
 | 파일 | 설명 |
 |---|---|
-| `Claude_Code_x_GitHub_Seminar.html` | **배포용 단일 파일 덱**(권장). 폰트·이미지를 모두 내장 → 파일 하나로 어디서나 그대로 열림 |
-| `index.html` | 편집용 소스 덱. 같은 폴더의 `fonts/`·`assets/`가 있어야 재생된다 |
-| `fonts/` | 삼성 브랜드 웹폰트(SamsungSS Head/Body, WOFF2, 로컬 임베드 — CDN 불필요) |
-| `assets/` | 삼성 워드마크 로고 등 이미지 |
+| `Claude_Code_x_GitHub_Seminar.html` | **배포용 단일 파일 덱**. 삼성 브랜드 폰트·이미지를 모두 base64로 내장 → 파일 하나로 어디서나 그대로 열린다(외부 폰트·자산 불필요) |
 
 ## 조작법
 
