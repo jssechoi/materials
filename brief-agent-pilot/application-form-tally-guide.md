@@ -3,6 +3,7 @@
 Regional AX Marketing의 Creative Brief Agent 베타 테스터 모집용 지원 폼 콘텐츠와 세팅 가이드.
 Tally에 그대로 붙여넣으면 지원 페이지가 완성된다.
 
+- **지원 폼 링크: https://tally.so/r/yPp8bp**
 - 원본 자료: [`sources/Brief Agent Pilot Application Form.txt`](../sources/Brief%20Agent%20Pilot%20Application%20Form.txt), [`sources/Regional AX Marketing Meeting_260724_Content brief.pptx`](../sources)
 - 일정: 지원 마감 **8/5 (Wed)** → 선발 통보 **8/7 (Fri)** → 베타 테스트 **8/7–14**
 
@@ -67,6 +68,6 @@ Tally에 그대로 붙여넣으면 지원 페이지가 완성된다.
 
 슬라이드 2 하단 문구:
 
-> \* Call for participants: **Regional** creative marketing brief agent pilot — **Apply by Aug 5: [Tally 링크]**
+> \* Call for participants: **Regional** creative marketing brief agent pilot — **Apply by Aug 5: https://tally.so/r/yPp8bp**
 
 원본의 "Reginal" 오타는 "Regional"로 함께 수정.
